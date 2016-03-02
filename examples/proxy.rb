@@ -1,8 +1,15 @@
 #!/usr/bin/env ruby
 require 'kage'
 
-def compare(a, b)
-  p [a, b]
+def compare(production_res, sandbox_res, url)
+  return if url.include?('/assets/')
+
+  production_parser = Http::Parser.new
+  production_parser << production_res
+  sandbox_parser = Http::Parser.new
+  sandbox_parser << sandbox_res
+
+  p "Response Diff #{production_parser.status_code}, #{sandbox_parser.status_code}, #{url}" if production_parser.status_code != sandbox_parser.status_code && production_parser.status_code != 302
 end
 
 Kage::ProxyServer.start do |server|
@@ -34,6 +41,6 @@ Kage::ProxyServer.start do |server|
 
   # This callback is only fired when there are multiple backends to respond
   server.on_backends_finished do |backends, requests, responses|
-    compare(responses[:production][:data], responses[:sandbox][:data])
+    compare(responses[:production][:data], responses[:sandbox][:data], requests.first[:url])
   end
 end
